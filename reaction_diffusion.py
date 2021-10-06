@@ -1,4 +1,7 @@
 # %%
+import numpy as np
+import imageio
+from utils import *
 import matplotlib.pyplot as plt
 
 from debug import debug
@@ -12,10 +15,8 @@ from torchvision.utils import save_image
 import importlib
 import utils
 importlib.reload(utils)
-from utils import *
 
 torch.autograd.set_grad_enabled(False)
-os.makedirs('figures/reaction_diffusion', exist_ok=True)
 # cmap = cmaps['gray_spectral']
 cmap = cmaps['gue']
 
@@ -23,7 +24,8 @@ cmap = cmaps['gue']
 def I(X, Y):
     A = torch.ones_like(X) + torch.rand_like(X) * 0.1
     d = (X - 0.5)**2 + (Y - 0.5)**2
-    B = (torch.clamp(0.001 - d, min=0) > 0).float() * 0.4 + torch.rand_like(X) * 0.1
+    B = (torch.clamp(0.001 - d, min=0) > 0).float() * \
+        0.4 + torch.rand_like(X) * 0.1
     return A, B
 
 
@@ -35,6 +37,13 @@ rA = 0.16
 rB = .08
 rF = .055
 rK = .062
+
+# T = 25000
+# dt = 1
+# n_grid = 512
+
+# reduce_res = 1
+# skip_frames = 30
 
 T = 25000
 dt = 1
@@ -57,6 +66,8 @@ def step(A, B):
 # %%
 
 
+os.makedirs('figures/reaction_diffusion', exist_ok=True)
+
 A, B = I(*mesh)
 
 for t in tqdm.trange(n_steps, desc='simulating', unit_scale=dt):
@@ -76,10 +87,6 @@ for t in tqdm.trange(n_steps, desc='simulating', unit_scale=dt):
 
 # %%
 
-import tqdm
-import imageio
-import matplotlib.pyplot as plt
-import numpy as np
 
 dev = False
 dev = True
@@ -100,7 +107,8 @@ file_out = 'reaction_diffusion.gif'
 
 with imageio.get_writer(file_out, mode='I', fps=1 / dt / skip_frames * 300) as writer:
     for t in tqdm.trange(int(n_steps / skip_frames), desc='writing file'):
-        image = imageio.imread(f'figures/reaction_diffusion/t={t * skip_frames + jump}.png')
+        image = imageio.imread(
+            f'figures/reaction_diffusion/t={t * skip_frames + jump}.png')
 
         image = torch.Tensor(image[:, :, 0] / 255)
         if dev:
@@ -117,7 +125,8 @@ with imageio.get_writer(file_out, mode='I', fps=1 / dt / skip_frames * 300) as w
         # image = image * 2 - 1
 
         colored = cmap(image)
-        colored = apply_lighting(image, colored, amb_color=[1, 0, 0], amb_amount=0.07)
+        colored = apply_lighting(image, colored, amb_color=[
+                                 1, 0, 0], amb_amount=0.07)
         colored = postproc(colored)
 
         # image = 1 - (1 - image) ** 4
