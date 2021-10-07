@@ -15,16 +15,17 @@ from utils import *
 
 torch.autograd.set_grad_enabled(False)
 os.makedirs('figures/wave_equation', exist_ok=True)
+os.makedirs('figures/wave_equation_colored', exist_ok=True)
 
 cmap = cmaps['wave']
 
 
 def I(X, Y):
-    # d = (X - 0.5)**2 + (Y - 0.5)**2
-    # return (torch.clamp_(0.01 - d, min=0) > 0).float() * 0.5
-    d = (X - Y).abs() * (X + Y - 1).abs()
-    # d = (X + Y - 1).abs()
+    d = (X - 0.5)**2 + (Y - 0.5)**2
     return (torch.clamp_(0.01 - d, min=0) > 0).float() * 0.5
+    # d = (X - Y).abs() * (X + Y - 1).abs()
+    # # d = (X + Y - 1).abs()
+    # return (torch.clamp_(0.01 - d, min=0) > 0).float() * 0.5
 
 
 def initial_step(u, C):
@@ -160,16 +161,16 @@ def apply_spec(rgb, specular, th=0, repeat=1):
 dev = False
 # dev = True
 
-render_gif = False
-render_gif = True
 
 file_out = 'wave_equation.mp4'
 if dev:
     file_out = 'wave_equation.gif'
 
 
-if dev and not render_gif:
-    jump_frames = 20
+if dev:
+    # jump_frames = 60
+    # jump_frames = 400
+    jump_frames = 700
     debug.disable = False
 else:
     jump_frames = 0
@@ -178,43 +179,69 @@ else:
 
 light_green = 0.5 * green + 0.2 * white
 cmap = Cmap(purple, yellow, red)
-cmap = Cmap(0.6 * cyan, 0.4 * gray, 0.95 * mix([white, orange, yellow, purple], [1, 8, 5, 20]))
-cmap = Cmap(mix([cyan, green], [3, 1]), 0.4 * gray, mix([orange, yellow], [1, 3]))
-cmaps['spectral_gray'] = Cmap(purple, red, orange, yellow, 0.8 * gray, green, cyan, blue, purple,
+cmap = Cmap(0.6 * cyan, 0.4 * gray, 0.95 *
+            mix([white, orange, yellow, purple], [1, 8, 5, 20]))
+cmap = Cmap(mix([cyan, green], [3, 1]), 0.4 *
+            gray, mix([orange, yellow], [1, 3]))
+# cmaps['spectral_gray'] = Cmap(purple, red, orange, yellow, 0.8 * gray, green, cyan, blue, purple,
+#                               mix=[1, 0.8, 0.5, 0.5, 1, 0.4, 0.5, 0.7, 1])
+cmaps['spectral_gray'] = Cmap(purple, red, orange, yellow, 0.2 * gray, green, cyan, blue, purple,
                               mix=[1, 0.8, 0.5, 0.5, 1, 0.4, 0.5, 0.7, 1])
 cmap = cmaps['spectral_gray']
 
 cmap.to(device)
 fx_to_device(device)
 
+
+def process_image(image):
+    image = torch.as_tensor(image, device=device, dtype=torch.float)
+    image = image[:, :, 0] / 255
+    # if dev:
+    #     image = torch.Tensor(image[200:-200, 200:-200])
+
+    H, W = image.shape
+    image = 2 * image - 1
+    # imshow(image)
+    # image = blur(image / 0.5, repeat=2)
+    image = smoothstep(blur(image * 5, repeat=2), slope=1)
+    # imshow(image)
+    # image = thin(image)
+
+    image = (image + 1) / 2
+    image = image.clip_(min=0, max=1)
+    colored = cmap(image)
+    colored = apply_lighting(image, colored, amb_amount=0.1)
+    # imshow(colored)
+
+    return colored
+
+
+from PIL import Image
+import numpy as np
+
+# # render all images
+# for t in tqdm.trange(int(n_steps / skip_frames), desc='writing file'):
+#     image = np.array(Image.open(
+#         f'figures/wave_equation/t={t * skip_frames}.png'))
+#     colored = process_image(image)
+#     save_image(
+#         colored, f'figures/wave_equation_colored/t={t * skip_frames}.png')
+
+# %%
+
 with imageio.get_writer(file_out, mode='I', fps=0.4 / dt / skip_frames) as writer:
     for t in tqdm.trange(int(n_steps / skip_frames), desc='writing file'):
-        image = imageio.imread(f'figures/wave_equation/t={(t + jump_frames) * skip_frames}.png')
-        image = torch.as_tensor(image[:, :, 0] / 255, device=device, dtype=torch.float)
-        # if dev:
-        #     image = torch.Tensor(image[200:-200, 200:-200])
-
-        H, W = image.shape
-        image = 2 * image - 1
-        # imshow(image)
-        # image = blur(image / 0.5, repeat=2)
-        image = smoothstep(blur(image * 5, repeat=2), slope=1)
-        # imshow(image)
-        # image = thin(image)
-
-        image = (image + 1) / 2
-        image = image.clip_(min=0, max=1)
-        colored = cmap(image)
-        colored = apply_lighting(image, colored, amb_amount=0.1)
-        # imshow(colored)
-
+        image = imageio.imread(
+            f'figures/wave_equation/t={(t + jump_frames) * skip_frames}.png')
+        colored = process_image(image)
         colored = colored.permute(1, 2, 0).cpu().numpy()
         colored = (colored * 255).astype('uint8')
+
         writer.append_data(colored)
-        if dev and not render_gif:
+        if dev:
             break
 
-if not dev:
+# %%
+if not dev and file_out.split('.')[-1] == 'gif':
     from pygifsicle import optimize
-    if file_out.split('.')[-1] == 'gif':
-        optimize(file_out)
+    optimize(file_out)

@@ -38,14 +38,7 @@ rB = .08
 rF = .055
 rK = .062
 
-# T = 25000
-# dt = 1
-# n_grid = 512
-
-# reduce_res = 1
-# skip_frames = 30
-
-T = 25000
+T = 25100
 dt = 1
 n_grid = 512
 
@@ -65,6 +58,9 @@ def step(A, B):
 
 # %%
 
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+mesh = mesh[0].to(device), mesh[1].to(device)
 
 os.makedirs('figures/reaction_diffusion', exist_ok=True)
 
@@ -104,6 +100,9 @@ def postproc(x):
 
 
 file_out = 'reaction_diffusion.gif'
+
+cmap.to(device)
+fx_to_device(device)
 
 with imageio.get_writer(file_out, mode='I', fps=1 / dt / skip_frames * 300) as writer:
     for t in tqdm.trange(int(n_steps / skip_frames), desc='writing file'):
