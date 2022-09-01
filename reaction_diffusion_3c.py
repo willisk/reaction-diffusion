@@ -1,4 +1,7 @@
 # %%
+# ====================================
+# Simulation
+# ====================================
 import numpy as np
 import imageio
 from utils import *
@@ -110,12 +113,12 @@ def step(A, B, C):
     avg_A = avg5(A)
     avg_B = avg5(B)
     avg_C = avg5(C)
-    # A = avg_A * (1 + (avg_B - avg_C))
-    # B = avg_B * (1 + (avg_C - avg_A))
-    # C = avg_C * (1 + (avg_A - avg_B))
     A += (laplace5(A) + avg_A * (avg_B - avg_C)) * dt
     B += (laplace5(B) + avg_B * (avg_C - avg_A)) * dt
     C += (laplace5(C) + avg_C * (avg_A - avg_B)) * dt
+    # A = avg_A * (1 + (avg_B - avg_C))
+    # B = avg_B * (1 + (avg_C - avg_A))
+    # C = avg_C * (1 + (avg_A - avg_B))
     A.clamp_(min=0, max=1)
     B.clamp_(min=0, max=1)
     C.clamp_(min=0, max=1)
@@ -150,9 +153,12 @@ for t in tqdm.trange(n_steps, desc='simulating', unit_scale=dt):
 
 # %%
 
+# ====================================
+# Visualization
+# ====================================
 
-dev = False
-# dev = True
+# dev = False
+dev = True
 
 if dev:
     # jump = 10 * skip_frames
@@ -182,6 +188,8 @@ with imageio.get_writer(file_out, fps=15) as writer:
         # writer.append_data(255 - image)
         writer.append_data(image)
         continue
+
+        # note: applying color maps did not look better on this experiment
 
         image = torch.Tensor(image.transpose(2, 0, 1) / 255).to(device)
         if dev:

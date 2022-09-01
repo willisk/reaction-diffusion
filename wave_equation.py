@@ -1,4 +1,8 @@
 # %%
+# ====================================
+# Simulation
+# ====================================
+
 import matplotlib.pyplot as plt
 
 from debug import debug
@@ -34,7 +38,7 @@ def initial_step(u, C):
 
 T = 10
 n_grid = 1024
-skip_frames = 5
+skip_frames = 5  # save only ever x frame
 reduce_res = 1
 dt = 0.001
 
@@ -79,6 +83,9 @@ for t in tqdm.trange(n_steps, desc='simulating', unit_scale=dt):
         assert U.isfinite().all(), 'NANs detected'
 
 # %%
+# ====================================
+# Visualization
+# ====================================
 
 import tqdm
 import imageio
@@ -162,9 +169,9 @@ dev = False
 # dev = True
 
 
-file_out = 'wave_equation.mp4'
-if dev:
-    file_out = 'wave_equation.gif'
+# file_out = 'wave_equation.mp4'
+# if dev:
+file_out = 'wave_equation.gif'
 
 
 if dev:
@@ -245,3 +252,5 @@ with imageio.get_writer(file_out, mode='I', fps=0.4 / dt / skip_frames) as write
 if not dev and file_out.split('.')[-1] == 'gif':
     from pygifsicle import optimize
     optimize(file_out)
+
+# %%

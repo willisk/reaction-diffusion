@@ -1,4 +1,8 @@
 # %%
+# ====================================
+# Simulation
+# ====================================
+
 import numpy as np
 import imageio
 from utils import *
@@ -43,7 +47,7 @@ dt = 1
 n_grid = 512
 
 reduce_res = 1
-skip_frames = 30
+skip_frames = 30  # save image only ever x frames
 
 n_steps = int(T / dt)
 x = torch.linspace(0, 1, n_grid)
@@ -82,10 +86,13 @@ for t in tqdm.trange(n_steps, desc='simulating', unit_scale=dt):
         assert A.isfinite().all() and B.isfinite().all(), 'NANs detected'
 
 # %%
+# ====================================
+# Visualization
+# ====================================
 
 
 dev = False
-dev = True
+# dev = True
 
 if dev:
     jump = 20 * skip_frames
@@ -141,3 +148,5 @@ with imageio.get_writer(file_out, mode='I', fps=1 / dt / skip_frames * 300) as w
         writer.append_data(colored)
         if dev:
             break
+
+# %%
